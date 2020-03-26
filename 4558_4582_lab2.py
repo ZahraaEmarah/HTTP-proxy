@@ -2,7 +2,6 @@ import socket
 import sys
 import os
 import enum
-import re
 
 
 class HttpRequestInfo(object):
