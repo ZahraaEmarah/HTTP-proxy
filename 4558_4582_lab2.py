@@ -2,6 +2,8 @@ import socket
 import sys
 import os
 import enum
+import re
+
 
 class HttpRequestInfo(object):
     """
@@ -247,7 +249,7 @@ def parse_http_request(source_address, http_raw_data) -> HttpRequestInfo:
         host_port = parsed_output_header[1].split(":")
         requested_host = host_port[0]
         if len(host_port) > 1:
-            requested_port = host_port[1]
+            requested_port = int(host_port[1])
 
         # Format header
         parsed_lines.pop(0)
@@ -266,6 +268,14 @@ def parse_http_request(source_address, http_raw_data) -> HttpRequestInfo:
 
     # ret.display()
     return ret
+
+
+def is_a_url_host(string):
+    parse = string.split(".")
+    if len(parse) >= 2:
+        return True
+    else:
+        return False
 
 
 def check_http_request_validity(http_request_info: HttpRequestInfo) -> HttpRequestState:
@@ -297,25 +307,44 @@ def sanitize_http_request(request_info: HttpRequestInfo) -> HttpRequestInfo:
     """
     requested_port = request_info.requested_port  # Default
     parse_by_slash = request_info.requested_host.split("/")
-    if len(parse_by_slash) > 2:  # Full url
-        requested_host = parse_by_slash[2]
-        header = [("Host", requested_host)]
-        if parse_by_slash[len(parse_by_slash)-1] == '':
-            requested_path = "/"
-        else:
-            parse_by_colon = parse_by_slash[len(parse_by_slash)-1].split(":")
+    if len(parse_by_slash) > 2:
+        if is_a_url_host(parse_by_slash[2]):  # Full url
+            requested_host = parse_by_slash[2]
+            # Initialize header
+            header = [("Host", requested_host)]
+            # Pop the unneeded values in is the parsed string
+            parse_by_slash.pop(0)
+            parse_by_slash.pop(0)
+            parse_by_slash.pop(0)
+            # To separate the port if given:
+            parse_by_colon = parse_by_slash[len(parse_by_slash) - 1].split(":")
             if len(parse_by_colon) > 1:
-                requested_path = "/" + parse_by_colon[0]
+                parse_by_slash[len(parse_by_slash) - 1] = parse_by_colon[0]
                 requested_port = int(parse_by_colon[1])
-            else:
-                requested_path = "/" + parse_by_colon[0]
-    else:  # In this case no header is specified but only a relative path is given
-        requested_path = "/" + parse_by_slash[1]
+
+            requested_path = ""
+            for i in parse_by_slash:
+                if i != '':
+                    requested_path = requested_path + i + "/"
+            if not requested_path.startswith('/'):
+                requested_path = "/" + requested_path
+        else:  # In this case no header is specified but only a relative path is given
+            print("NO HOST")
+            parse_by_slash.pop(0)
+            requested_path = ""
+            for i in parse_by_slash:
+                requested_path = requested_path + i + "/"
+            if not requested_path.startswith('/'):
+                requested_path = "/" + requested_path
+            requested_host = ""
+            header = ""
+    else:
         requested_host = ""
         header = ""
-
+        requested_path = "/" + parse_by_slash[1]
     ret = HttpRequestInfo(request_info.client_address_info, request_info.method, requested_host,
                           requested_port, requested_path, header)
+    # ret.display()
     return ret
 
 
