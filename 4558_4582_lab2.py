@@ -150,7 +150,6 @@ def setup_sockets(proxy_port_number):
     request = receive_request(connection)
     print("Received HTTP request: ")
     print(request)
-
     # Start the HTTP processing pipeline
     processed = http_request_pipeline(address, request)
     if isinstance(processed, HttpErrorResponse):    # Is an error
@@ -169,6 +168,8 @@ def setup_sockets(proxy_port_number):
         socket_request = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_request.connect((processed.requested_host, processed.requested_port))
         # Send the request
+        print("Request ")
+        print(http_request_bytes)
         socket_request.send(http_request_bytes)
         print("Receiving data...")
         received_data = socket_request.recv(4096)
@@ -340,6 +341,8 @@ def sanitize_http_request(request_info: HttpRequestInfo) -> HttpRequestInfo:
         requested_host = ""
         header = ""
         requested_path = "/" + parse_by_slash[1]
+    if requested_path.endswith("/") and len(requested_path) > 1:
+        requested_path = requested_path[0:len(requested_path)-1]
     ret = HttpRequestInfo(request_info.client_address_info, request_info.method, requested_host,
                           requested_port, requested_path, header)
     # ret.display()
