@@ -283,7 +283,7 @@ def check_http_request_validity(http_request_info: HttpRequestInfo) -> HttpReque
     returns:
     One of values in HttpRequestState
     """
-    valid_methods = list(["GET", "PUT", "HEAD", "POST"])
+    valid_methods = list(["GET", "PUT", "HEAD", "POST", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"])
     supported_methods = list(["GET"])
 
     if http_request_info.method not in valid_methods:
@@ -328,7 +328,6 @@ def sanitize_http_request(request_info: HttpRequestInfo) -> HttpRequestInfo:
             if not requested_path.startswith('/'):
                 requested_path = "/" + requested_path
         else:  # In this case no header is specified but only a relative path is given
-            print("NO HOST")
             parse_by_slash.pop(0)
             requested_path = ""
             for i in parse_by_slash:
