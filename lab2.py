@@ -134,7 +134,7 @@ def entry_point(proxy_port_number):
     but feel free to modify the code
     inside it.
     """
-    setup_sockets(proxy_port_number)
+    setup_sockets(int(proxy_port_number))
 
     return None
 
@@ -317,9 +317,9 @@ def check_http_request_validity(http_raw_data) -> HttpRequestState:
     if headers:
         lines_list.pop(0)
         for i in lines_list:
-            if i != '':
+            if i != "":
                 header_split = i.split(": ")
-                if len(header_split) == 1:
+                if len(header_split) <= 1:
                     header_valid = False
                     break
 
@@ -416,7 +416,7 @@ def check_file_name():
 
     leave this function and as and don't use it. it's just
     to notify you if you're submitting a file with a correct
-    name.
+    name.s
     """
     script_name = os.path.basename(__file__)
     import re
@@ -433,8 +433,8 @@ def main():
 
     To add code that uses sockets, feel free to add functions
     above main and outside the classes.
-    """
 
+    """
     print("\n\n")
     print("*" * 50)
     print(f"[LOG] Printing command line arguments [{', '.join(sys.argv)}]")
