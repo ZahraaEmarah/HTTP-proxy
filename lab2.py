@@ -416,7 +416,7 @@ def check_file_name():
 
     leave this function and as and don't use it. it's just
     to notify you if you're submitting a file with a correct
-    name.s
+    name.
     """
     script_name = os.path.basename(__file__)
     import re
@@ -433,7 +433,6 @@ def main():
 
     To add code that uses sockets, feel free to add functions
     above main and outside the classes.
-
     """
     print("\n\n")
     print("*" * 50)
