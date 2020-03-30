@@ -185,11 +185,14 @@ def setup_sockets(proxy_port_number):
         print(http_request_bytes)
         socket_request.send(http_request_bytes)
         print("Receiving data...")
-        received_data = socket_request.recv(4096)
-        socket_request.close()
-        # Now sending data to client
-        connection.sendall(received_data)
+        while True:
+            received_data = socket_request.recv(4096)
+            if not received_data:
+                break
+            # Now sending data to client
+            connection.sendall(received_data)
         print("Data sent!")
+        socket_request.close()
         sock.close()
 
     return processed
