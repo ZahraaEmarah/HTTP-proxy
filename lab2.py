@@ -134,9 +134,7 @@ def entry_point(proxy_port_number):
     but feel free to modify the code
     inside it.
     """
-
     setup_sockets(int(proxy_port_number))
-
     return None
 
 
@@ -160,10 +158,9 @@ def setup_sockets(proxy_port_number):
     connection, address = sock.accept()
     cache = {}
     data = b""
-
+    
     while True:
         print('Connected on', address)
-
         # Receive the incoming HTTP request
         request = receive_request(connection)
         print("*" * 50)
@@ -171,7 +168,11 @@ def setup_sockets(proxy_port_number):
         print(request)
         cached_data = "None"
         # Start the HTTP processing pipeline
-        processed = http_request_pipeline(address, request)
+        try:
+            processed = http_request_pipeline(address, request)
+        except IndexError as e:
+            print(e)
+            processed = HttpErrorResponse("400", "Bad Request")
 
         if isinstance(processed, HttpErrorResponse):  # Is an error
             print("Error!")
@@ -183,8 +184,8 @@ def setup_sockets(proxy_port_number):
         else:
             print("Sending http request...")
             for x in cache:
-                cached_data = cache[request]
-
+                if x == request:
+                    cached_data = cache[request]
             print("before req")
             print(cached_data)
 
@@ -199,7 +200,6 @@ def setup_sockets(proxy_port_number):
                 print(http_request_bytes)
                 socket_request.send(http_request_bytes)
                 print("Receiving data...")
-
                 while True:
                     received_data = socket_request.recv(4096)
                     if not received_data:
@@ -213,15 +213,12 @@ def setup_sockets(proxy_port_number):
                 socket_request.close()
                 cache[request] = data
                 print(cache)
-
             else:
                 connection.sendall(cached_data)
             sock.close()
-
             print("after req")
             print(cached_data)
             print("Data sent!")
-    return processed
 
 
 def receive_request(connection):
@@ -231,9 +228,8 @@ def receive_request(connection):
     while True:
         data = connection.recv(1024)
         print(data)
-        if data == b'\r\n':  # End of request condition
+        if data == b'\r\n' or not data:  # End of request condition
             break
-
         input_bytes = input_bytes + data
 
     return input_bytes.decode()
