@@ -173,7 +173,7 @@ def setup_sockets(proxy_port_number):
                     processed = http_request_pipeline(address, request)
                 except IndexError as e:
                     print(e)
-                    processed = HttpErrorResponse("400", "Bad Request")
+                    continue
 
                 if isinstance(processed, HttpErrorResponse):  # Is an error
                     print("Error!")
@@ -364,7 +364,10 @@ def check_http_request_validity(http_raw_data) -> HttpRequestState:
 def is_a_url_host(string):
     parse = string.split(".")
     if len(parse) >= 2:
-        return True
+        if string.startswith('/'):
+            return False
+        else:
+            return True
     else:
         return False
 
