@@ -396,10 +396,17 @@ def sanitize_http_request(request_info: HttpRequestInfo):
     parse_by_slash.pop(0)
     parse_by_slash.pop(0)
     # To separate the port if given:
-    parse_by_colon = parse_by_slash[len(parse_by_slash) - 1].split(":")
-    if len(parse_by_colon) > 1:
-        parse_by_slash[len(parse_by_slash) - 1] = parse_by_colon[0]
-        requested_port = int(parse_by_colon[1])
+    if parse_by_slash:
+        parse_by_colon = parse_by_slash[len(parse_by_slash) - 1].split(":")
+        if len(parse_by_colon) > 1:
+            parse_by_slash[len(parse_by_slash) - 1] = parse_by_colon[0]
+            requested_port = int(parse_by_colon[1])
+    else:
+        parse_by_colon = request_info.requested_path.split(":")
+        if len(parse_by_colon) > 2:
+            requested_port = int(parse_by_colon[2])
+            split_slashes = parse_by_colon[1].split("/")
+            requested_host = split_slashes[2]
 
     requested_path = ""
     for i in parse_by_slash:
