@@ -134,6 +134,7 @@ def entry_point(proxy_port_number):
     but feel free to modify the code
     inside it.
     """
+
     setup_sockets(int(proxy_port_number))
 
     return None
@@ -157,44 +158,69 @@ def setup_sockets(proxy_port_number):
     sock.bind(('127.0.0.1', proxy_port_number))
     sock.listen()
     connection, address = sock.accept()
-    print('Connected on', address)
+    cache = {}
+    data = b""
 
-    # Receive the incoming HTTP request
-    request = receive_request(connection)
-    print("*" * 50)
-    print("Received HTTP request: ")
-    print(request)
-    # Start the HTTP processing pipeline
-    processed = http_request_pipeline(address, request)
-    if isinstance(processed, HttpErrorResponse):  # Is an error
-        print("Error!")
-        print(processed.to_http_string())
-        error_byte_array = processed.to_byte_array(processed.to_http_string())
-        # Sending the error message to client
-        connection.sendall(error_byte_array)
-        sock.close()
-    else:
-        print("Sending http request...")
-        processed_string = processed.to_http_string()
-        http_request_bytes = processed.to_byte_array(processed_string)
-        # Open a new socket
-        socket_request = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket_request.connect((processed.requested_host, processed.requested_port))
-        # Send the request
-        print("Request bytes: ")
-        print(http_request_bytes)
-        socket_request.send(http_request_bytes)
-        print("Receiving data...")
-        while True:
-            received_data = socket_request.recv(4096)
-            if not received_data:
-                break
-            # Now sending data to client
-            connection.sendall(received_data)
-        print("Data sent!")
-        socket_request.close()
-        sock.close()
+    while True:
+        print('Connected on', address)
 
+        # Receive the incoming HTTP request
+        request = receive_request(connection)
+        print("*" * 50)
+        print("Received HTTP request: ")
+        print(request)
+        cached_data = "None"
+        # Start the HTTP processing pipeline
+        processed = http_request_pipeline(address, request)
+
+        if isinstance(processed, HttpErrorResponse):  # Is an error
+            print("Error!")
+            print(processed.to_http_string())
+            error_byte_array = processed.to_byte_array(processed.to_http_string())
+            # Sending the error message to client
+            connection.sendall(error_byte_array)
+            sock.close()
+        else:
+            print("Sending http request...")
+            for x in cache:
+                cached_data = cache[request]
+
+            print("before req")
+            print(cached_data)
+
+            if cached_data == "None":
+                processed_string = processed.to_http_string()
+                http_request_bytes = processed.to_byte_array(processed_string)
+                # Open a new socket
+                socket_request = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                socket_request.connect((processed.requested_host, processed.requested_port))
+                # Send the request
+                print("Request bytes: ")
+                print(http_request_bytes)
+                socket_request.send(http_request_bytes)
+                print("Receiving data...")
+
+                while True:
+                    received_data = socket_request.recv(4096)
+                    if not received_data:
+                        break
+                    # Now sending data to client
+                    connection.sendall(received_data)
+                    data = data + received_data
+                    print(data)
+
+                print(data)
+                socket_request.close()
+                cache[request] = data
+                print(cache)
+
+            else:
+                connection.sendall(cached_data)
+            sock.close()
+
+            print("after req")
+            print(cached_data)
+            print("Data sent!")
     return processed
 
 
@@ -237,7 +263,7 @@ def http_request_pipeline(source_address, http_raw_data):
         error_response = HttpErrorResponse("501", "Not Implemented")
         return error_response
     elif validity == HttpRequestState.GOOD:
-        error_response = HttpErrorResponse("200", "OK")     # Valid request
+        error_response = HttpErrorResponse("200", "OK")  # Valid request
         print(error_response.to_http_string())
 
     # Return error if needed, then:
@@ -252,6 +278,7 @@ def parse_http_request(source_address, http_raw_data):
     This function parses a "valid" HTTP request into an HttpRequestInfo
     object.
     """
+
     print("*" * 50)
     requested_port = 80  # Default
     parsed_lines = http_raw_data.split("\r\n")  # Parse by new line first
@@ -369,17 +396,11 @@ def sanitize_http_request(request_info: HttpRequestInfo):
     parse_by_slash.pop(0)
     parse_by_slash.pop(0)
     # To separate the port if given:
-    if parse_by_slash:
-        parse_by_colon = parse_by_slash[len(parse_by_slash) - 1].split(":")
-        if len(parse_by_colon) > 1:
-            parse_by_slash[len(parse_by_slash) - 1] = parse_by_colon[0]
-            requested_port = int(parse_by_colon[1])
-    else:
-        parse_by_colon = request_info.requested_path.split(":")
-        if len(parse_by_colon) > 2:
-            requested_port = int(parse_by_colon[2])
-            split_slashes = parse_by_colon[1].split("/")
-            requested_host = split_slashes[2]
+    parse_by_colon = parse_by_slash[len(parse_by_slash) - 1].split(":")
+    if len(parse_by_colon) > 1:
+        parse_by_slash[len(parse_by_slash) - 1] = parse_by_colon[0]
+        requested_port = int(parse_by_colon[1])
+
     requested_path = ""
     for i in parse_by_slash:
         if i != '':
@@ -388,7 +409,7 @@ def sanitize_http_request(request_info: HttpRequestInfo):
         requested_path = "/" + requested_path
 
     if requested_path.endswith("/") and len(requested_path) > 1:
-        requested_path = requested_path[0:len(requested_path)-1]
+        requested_path = requested_path[0:len(requested_path) - 1]
     ret = HttpRequestInfo(request_info.client_address_info, request_info.method, requested_host,
                           requested_port, requested_path, header)
     return ret
@@ -416,7 +437,7 @@ def get_arg(param_index, default=None):
             print(e)
             print(
                 f"[FATAL] The comand-line argument #[{param_index}] is missing")
-            exit(-1)    # Program execution failed.
+            exit(-1)  # Program execution failed.
 
 
 def check_file_name():
