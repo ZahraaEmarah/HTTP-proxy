@@ -173,7 +173,7 @@ def setup_sockets(proxy_port_number):
                     processed = http_request_pipeline(address, request)
                 except IndexError as e:
                     print(e)
-                    continue
+                    processed = HttpErrorResponse("400", "Bad Request")
 
                 if isinstance(processed, HttpErrorResponse):  # Is an error
                     print("Error!")
@@ -208,9 +208,6 @@ def setup_sockets(proxy_port_number):
                             # Now sending data to client
                             connection.sendall(received_data)
                             data = data + received_data
-                            print(data)
-
-                        print(data)
                         socket_request.close()
                         cache[request] = data
                         print(cache)
