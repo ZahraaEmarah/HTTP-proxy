@@ -158,67 +158,68 @@ def setup_sockets(proxy_port_number):
     connection, address = sock.accept()
     cache = {}
     data = b""
-    
-    while True:
+    with connection:
         print('Connected on', address)
-        # Receive the incoming HTTP request
-        request = receive_request(connection)
-        print("*" * 50)
-        print("Received HTTP request: ")
-        print(request)
-        cached_data = "None"
-        # Start the HTTP processing pipeline
-        try:
-            processed = http_request_pipeline(address, request)
-        except IndexError as e:
-            print(e)
-            processed = HttpErrorResponse("400", "Bad Request")
+        while True:
+            # Receive the incoming HTTP request
+            request = receive_request(connection)
+            if request:
+                print("*" * 50)
+                print("Received HTTP request: ")
+                print(request)
+                cached_data = "None"
+                # Start the HTTP processing pipeline
+                try:
+                    processed = http_request_pipeline(address, request)
+                except IndexError as e:
+                    print(e)
+                    continue
 
-        if isinstance(processed, HttpErrorResponse):  # Is an error
-            print("Error!")
-            print(processed.to_http_string())
-            error_byte_array = processed.to_byte_array(processed.to_http_string())
-            # Sending the error message to client
-            connection.sendall(error_byte_array)
-            sock.close()
-        else:
-            print("Sending http request...")
-            for x in cache:
-                if x == request:
-                    cached_data = cache[request]
-            print("before req")
-            print(cached_data)
+                if isinstance(processed, HttpErrorResponse):  # Is an error
+                    print("Error!")
+                    print(processed.to_http_string())
+                    error_byte_array = processed.to_byte_array(processed.to_http_string())
+                    # Sending the error message to client
+                    connection.sendall(error_byte_array)
+                    sock.close()
+                else:
+                    print("Sending http request...")
+                    for x in cache:
+                        if x == request:
+                            cached_data = cache[request]
+                    print("before req")
+                    print(cached_data)
 
-            if cached_data == "None":
-                processed_string = processed.to_http_string()
-                http_request_bytes = processed.to_byte_array(processed_string)
-                # Open a new socket
-                socket_request = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                socket_request.connect((processed.requested_host, processed.requested_port))
-                # Send the request
-                print("Request bytes: ")
-                print(http_request_bytes)
-                socket_request.send(http_request_bytes)
-                print("Receiving data...")
-                while True:
-                    received_data = socket_request.recv(4096)
-                    if not received_data:
-                        break
-                    # Now sending data to client
-                    connection.sendall(received_data)
-                    data = data + received_data
-                    print(data)
+                    if cached_data == "None":
+                        processed_string = processed.to_http_string()
+                        http_request_bytes = processed.to_byte_array(processed_string)
+                        # Open a new socket
+                        socket_request = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        socket_request.connect((processed.requested_host, processed.requested_port))
+                        # Send the request
+                        print("Request bytes: ")
+                        print(http_request_bytes)
+                        socket_request.send(http_request_bytes)
+                        print("Receiving data...")
+                        while True:
+                            received_data = socket_request.recv(4096)
+                            if not received_data:
+                                break
+                            # Now sending data to client
+                            connection.sendall(received_data)
+                            data = data + received_data
+                            print(data)
 
-                print(data)
-                socket_request.close()
-                cache[request] = data
-                print(cache)
-            else:
-                connection.sendall(cached_data)
-            sock.close()
-            print("after req")
-            print(cached_data)
-            print("Data sent!")
+                        print(data)
+                        socket_request.close()
+                        cache[request] = data
+                        print(cache)
+                    else:
+                        connection.sendall(cached_data)
+                    sock.close()
+                    print("after req")
+                    print(cached_data)
+                    print("Data sent!")
 
 
 def receive_request(connection):
@@ -227,7 +228,6 @@ def receive_request(connection):
     input_bytes = bytes()
     while True:
         data = connection.recv(1024)
-        print(data)
         if data == b'\r\n' or not data:  # End of request condition
             break
         input_bytes = input_bytes + data
