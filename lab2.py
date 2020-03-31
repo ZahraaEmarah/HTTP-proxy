@@ -189,9 +189,6 @@ def setup_sockets(proxy_port_number):
                     for x in cache:
                         if x == complete_path:
                             cached_data = cache[complete_path]
-                    print("before req")
-                    print(cached_data)
-
                     if cached_data == "None":
                         processed_string = processed.to_http_string()
                         http_request_bytes = processed.to_byte_array(processed_string)
@@ -210,15 +207,13 @@ def setup_sockets(proxy_port_number):
                             # Now sending data to client
                             connection.sendall(received_data)
                             data = data + received_data
+                        print("Data sent!")
                         socket_request.close()
                         cache[complete_path] = data
-                        print(cache)
                     else:
                         connection.sendall(cached_data)
+                        print("Data sent!")
                     sock.close()
-                    print("after req")
-                    print(cached_data)
-                    print("Data sent!")
 
 
 def receive_request(connection):
