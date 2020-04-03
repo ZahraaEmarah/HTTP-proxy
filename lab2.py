@@ -2,8 +2,9 @@ import sys
 import os
 import enum
 import socket
+import threading
 
-
+cache = {}
 class HttpRequestInfo(object):
     """
     Represents a HTTP request information
@@ -134,11 +135,20 @@ def entry_point(proxy_port_number):
     but feel free to modify the code
     inside it.
     """
-    setup_sockets(int(proxy_port_number))
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(('127.0.0.1', proxy_port_number))
+    sock.listen(30)
+
+
+    while True:
+        connection, address = sock.accept()
+        thr = threading.Thread(target=setup_sockets, args=(int(proxy_port_number), sock, connection, address,))
+        thr.start()
+    # setup_sockets(int(proxy_port_number))
     return None
 
 
-def setup_sockets(proxy_port_number):
+def setup_sockets(proxy_port_number, sock, connection, address):
     """
     Socket logic MUST NOT be written in the any
     class. Classes know nothing about the sockets.
@@ -152,12 +162,9 @@ def setup_sockets(proxy_port_number):
     # when calling socket.listen() pass a number
     # that's larger than 10 to avoid rejecting
     # connections automatically.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(('127.0.0.1', proxy_port_number))
-    sock.listen()
-    connection, address = sock.accept()
-    cache = {}
+
     data = b""
+
     with connection:
         print('Connected on', address)
         while True:
@@ -464,6 +471,7 @@ def main():
     To add code that uses sockets, feel free to add functions
     above main and outside the classes.
     """
+
     print("\n\n")
     print("*" * 50)
     print(f"[LOG] Printing command line arguments [{', '.join(sys.argv)}]")
