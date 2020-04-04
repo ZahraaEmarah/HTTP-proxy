@@ -5,6 +5,8 @@ import socket
 import threading
 
 cache = {}
+
+
 class HttpRequestInfo(object):
     """
     Represents a HTTP request information
@@ -137,18 +139,15 @@ def entry_point(proxy_port_number):
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('127.0.0.1', proxy_port_number))
-    sock.listen(30)
-
 
     while True:
+        sock.listen(30)
         connection, address = sock.accept()
-        thr = threading.Thread(target=setup_sockets, args=(int(proxy_port_number), sock, connection, address,))
+        thr = threading.Thread(target=setup_sockets, args=(int(proxy_port_number), connection, address,))
         thr.start()
-    # setup_sockets(int(proxy_port_number))
-    return None
 
 
-def setup_sockets(proxy_port_number, sock, connection, address):
+def setup_sockets(proxy_port_number, connection, address):
     """
     Socket logic MUST NOT be written in the any
     class. Classes know nothing about the sockets.
@@ -188,7 +187,6 @@ def setup_sockets(proxy_port_number, sock, connection, address):
                     error_byte_array = processed.to_byte_array(processed.to_http_string())
                     # Sending the error message to client
                     connection.sendall(error_byte_array)
-                    sock.close()
                 else:
                     print("Sending http request...")
                     # Check if request is in cache
@@ -220,7 +218,6 @@ def setup_sockets(proxy_port_number, sock, connection, address):
                     else:
                         connection.sendall(cached_data)
                         print("Data sent!")
-                    sock.close()
 
 
 def receive_request(connection):
